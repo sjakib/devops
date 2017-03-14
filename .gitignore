@@ -1,0 +1,21 @@
+target
+dist
+.bak
+*.tar.gz
+**/*.tar.gz
+
+**/*pyc
+
+# IntelliJ project files
+.idea
+*.iml
+**/*.iml
+out
+gen
+
+# Eclipse project files
+.classpath
+.project
+.settings
+
+
