@@ -1,0 +1,13 @@
+
+- name: Check if Tomcat engine installation already exists
+  stat: path={{tomcat_location}}/bin/version.sh
+  register: t4_version_script
+
+- name: if Tomcat is installed, check availability and version for user
+  shell: $({{tomcat_location}})/bin/version.sh | grep "Server version:" | cut -d"/" -f2
+  when: t4_version_script.stat.exists
+  register: t4_version_installed
+  changed_when: False
+  environment: 
+    JAVA_HOME: "{{jdk_home}}"
+  become_user: "{{app_system_user}}"

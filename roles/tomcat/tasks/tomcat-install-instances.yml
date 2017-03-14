@@ -1,0 +1,5 @@
+---
+
+- name: Set application tomcat home symlink
+  file: src={{tomcat_location}} dest={{catalina_home}} state=link owner={{tomcat_system_username}} group={{tomcat_system_usergroup}}
+  become: True
