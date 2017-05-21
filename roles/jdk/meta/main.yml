@@ -1,0 +1,6 @@
+---
+galaxy_info:
+  name: jdk
+  version: ${project.version}
+dependencies:
+  - {role: setup}

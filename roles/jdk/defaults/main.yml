@@ -1,0 +1,8 @@
+---
+# artifactory credentials
+nexus_user: nexus_user
+nexus_pwd: nexus_pwd
+
+#default jdk version
+jdk_version: 1.8.0_45
+

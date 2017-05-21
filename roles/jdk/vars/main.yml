@@ -1,0 +1,7 @@
+
+jdk_download_url: "{{repo_socle_url}}/jdk/{{jdk_version}}/jdk-{{jdk_version}}-linux-x{{ansible_userspace_bits}}.tar.gz"
+jdk_download_location_filename: "{{dist_directory}}/jdk-{{jdk_version}}-linux-x{{ansible_userspace_bits}}.tar.gz"
+
+jdk_all_installs_dir: "{{install_directory}}/java"
+# jdk home
+jdk_home: "{{jdk_all_installs_dir}}/jdk{{jdk_version}}"

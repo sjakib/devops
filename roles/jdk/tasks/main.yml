@@ -1,0 +1,65 @@
+---
+- name: Check if jdk is already installed
+  stat: path={{jdk_home}}/bin/java
+  register: java_installed_ckeck
+
+- name: Create main java install dir
+  file: path={{jdk_all_installs_dir}} state=directory owner=root group=root mode=0755
+  become: True
+  tags: ['socle-technique']
+
+- name: "Verify required jdk version for application user"
+  command: "{{jdk_home}}/bin/java -version"
+  register: java_version
+  become_user: "{{app_system_user}}"
+  changed_when: False
+  when: java_installed_ckeck.stat.exists == True
+
+- name: Assert installed jdk version matches required one {{jdk_version}}
+  fail: msg='jdk not installed correctly'
+  when: "java_installed_ckeck.stat.exists == True and '{{jdk_version}}' not in java_version.stderr"
+
+- name: Create JDK Home directory
+  file: path={{jdk_home}} state=directory
+  when: java_installed_ckeck.stat.exists != True
+  become: True
+  tags: ['socle-technique']
+
+- name: Check if jdk already downloaded
+  stat: path={{jdk_download_location_filename}}
+  when: java_installed_ckeck.stat.exists != True
+  register: jdksrc
+  tags: ['socle-technique']
+
+- name: Download Java {{jdk_version}}
+  get_url: url={{jdk_download_url}} dest={{jdk_download_location_filename}} timeout=20 url_username={{artifactory_user}} url_password={{artifactory_pwd}}
+  register: java_downloaded_pkg
+  become: True
+  when: "jdksrc.stat is defined and jdksrc.stat.exists != True and java_installed_ckeck.stat.exists != True"
+  tags: ['socle-technique']
+
+- name: "Extract Java archive"
+#  command: chdir=/usr/share /bin/tar zxfp {{jdk_download_location_filename}} -C {{jdk_all_installs_dir}}
+  unarchive: src="{{jdk_download_location_filename}}" dest="{{jdk_all_installs_dir}}" copy=no
+  become: True
+  when: java_installed_ckeck.stat.exists != True
+  tags: ['socle-technique']
+
+- name: "Change ownership of jdk installation"
+  file: path={{jdk_home}} owner=root group=root state=directory recurse=yes mode=0755
+  become: True
+  when: java_installed_ckeck.stat.exists != True
+  tags: ['socle-technique']
+
+- name: "Test jdk with java -version"
+  command: "{{jdk_home}}/bin/java -version"
+  register: java_version
+  become_user: "{{app_system_user}}"
+  changed_when: False
+  when: java_installed_ckeck.stat.exists != True
+  tags: ['socle-technique']
+
+- name: "assert jdk  works with standard user"
+  fail: msg='jdk not installed correctly'
+  when: java_installed_ckeck.stat.exists != True and '{{jdk_version}}' not in java_version.stderr
+  tags: ['socle-technique']
