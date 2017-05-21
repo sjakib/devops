@@ -1,6 +1,0 @@
----
-galaxy_info:
-  name: gl.app-deploy-tomcat
-  version: ${project.version}
-dependencies:
-  - { role: 'gl.tomcat', when: install_middleware }

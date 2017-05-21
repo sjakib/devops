@@ -1,8 +1,0 @@
----
-# artifactory credentials
-nexus_user: nexus
-nexus_pwd: password
-tomcat_restart_after_deploy: true
-install_middleware: true
-# number of days
-tomcat_clean_old_wars_nb_keep: 3

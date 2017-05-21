@@ -1,9 +1,0 @@
-- name: start tomcat all
-  shell: "/usr/local/bin/tomcat_{{env_app_name | replace('/', '_')}}_{{project_cluster_name}}_start_all  server{{ item.srv_num }}"
-  become: True
-  with_items: tomcat.instances
-
-- name: stop tomcat all
-  shell: "/usr/local/bin/tomcat_{{env_app_name | replace('/', '_')}}_{{project_cluster_name}}_stop_all  server{{ item.srv_num }}"
-  become: True
-  with_items: tomcat.instances

@@ -1,8 +1,0 @@
-<Context path="/{{app_context}}" docBase="{{war_to_deploy}}" reloadable="false" unpackWAR="true">
-{% if app_context_env_vars is defined %}
-{% for env_var in app_context_env_vars %}
-  <Environment name="{{env_var.key}}" value="{{env_var.value}}" type="java.lang.String" />
-{% endfor %}
-{% endif %}
-
-</Context>
