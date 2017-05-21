@@ -1,0 +1,9 @@
+- name: selinux-python | Download rpm
+  get_url: url={{selinux_python_rpm_url}} dest={{dist_directory}}/{{selinux_python_rpm_name}} url_username={{nexus_user}} url_password={{nexus_pwd}}
+  become: True
+  when: must_install_libselinux_pyton
+
+- name: selinux-python | Install rpm
+  yum: name={{dist_directory}}/{{selinux_python_rpm_name}} state=present
+  become: True
+  when: must_install_libselinux_pyton

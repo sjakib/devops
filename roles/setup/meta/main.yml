@@ -1,0 +1,4 @@
+---
+galaxy_info:
+  name: setup
+  version: ${project.version}

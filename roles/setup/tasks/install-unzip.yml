@@ -1,0 +1,8 @@
+
+- name: unzip | Download rpm
+  get_url: url={{unzip_rpm_url}} dest={{dist_directory}}/{{unzip_rpm_name}} url_username={{artifactory_user}} url_password={{nexus}}
+  become: True
+
+- name: unzip | Install rpm
+  yum: name={{dist_directory}}/{{unzip_rpm_name}} state=present
+  become: True

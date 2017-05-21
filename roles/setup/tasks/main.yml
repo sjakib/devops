@@ -1,0 +1,87 @@
+
+- name: "Create global base directory"
+  file: path={{install_directory}} owner=root group=root state=directory mode=0755 follow=true
+  become: True
+
+- name: "Create dist directory"
+  file: path={{dist_directory}} owner=root group=root state=directory mode=0755 follow=true
+  become: True
+
+- set_fact: must_install_libselinux_pyton="(ansible_distribution == 'RedHat' and ansible_distribution_major_version == '6')"
+  tags: ['socle-technique']
+
+- name: Installing selinux-python, required for future tasks on centos/rhel 6
+  include: "install-selinux-python.yml"
+  when: must_install_libselinux_pyton
+  tags: ['socle-technique']
+
+- name: "Installing python-httplib2, required for uri tasks"
+  include: "install-httplib2-python.yml"
+  when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'
+  tags: ['socle-technique']
+
+- name: "Installing unzip, required for zip decompression commands"
+  include: "install-unzip.yml"
+  when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'
+  tags: ['socle-technique']
+
+- name: "Create application group {{app_system_group}}"
+  group: name={{app_system_group}} state=present
+  become: True
+  register: app_group_info
+
+- name: "Set application group {{app_system_group}} GID"
+  group: name={{app_system_group}} state=present gid={{app_system_group_id}}
+  become: True
+  when: app_system_group_id is defined
+
+- name: "Create application user {{app_system_user}}"
+  user: name={{app_system_user}} group={{app_system_group}} home=/home/{{app_system_user}} createhome=yes state=present
+  become: True
+  register: app_user_info
+
+- name: "Set application user {{app_system_user}} UID"
+  user: name={{app_system_user}} state=present uid={{app_system_user_id}}
+  become: True
+  when: app_system_user_id is defined
+
+- name: "Change owner on /home/{{app_system_user}} folder"
+  file: path=/home/{{app_system_user}} recurse=yes owner={{app_system_user}} group={{app_system_group}}
+  become: True
+  when: app_system_group_id is defined and app_system_user_id is defined and ((app_group_info.gid != app_system_group_id) or (app_user_info.uid != app_system_user_id))
+
+- name: "Set umask for {{app_system_user}}"
+  lineinfile: dest=/home/{{app_system_user}}/.bash_profile line='umask {{app_system_user_umask}}' state=present
+  become: True
+  when: app_system_user_umask is defined
+
+- name: Check if management user exists
+  shell: id {{mgmt_system_user}}
+  register: check_mgmt_user
+  become: True
+  ignore_errors: True
+  changed_when: False
+  failed_when: False
+
+- name: add application group as secondary group to management user {{mgmt_system_user}} if exists
+  user: name={{mgmt_system_user}} groups={{app_system_group}} createhome=no append=true
+  become: True
+  ignore_errors: True
+  when: check_mgmt_user.rc == 0
+
+- name: "Create base env directory (if gl_env is set)"
+  file: path={{install_directory}}/{{gl_env}} owner=root group=root state=directory follow=true mode=0755
+  become: True
+  when: gl_env is defined and gl_env != '' and gl_env != None
+
+- name: "Create project app base directory"
+  file: path={{ app_base_dir }} owner={{app_system_user}} group={{app_system_group}} state=directory follow=true mode=0750
+  become: True
+
+- name: "Create project app logs directory"
+  file: path={{ app_base_dir }}/logs owner={{app_system_user}} group={{app_system_group}} state=directory mode=0750
+  become: True
+
+- name: "Create project app data directory"
+  file: path={{ app_base_dir }}/data owner={{app_system_user}} group={{app_system_group}} state=directory mode=0750
+  become: True

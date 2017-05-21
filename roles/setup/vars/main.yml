@@ -1,0 +1,27 @@
+---
+env_app_name: "{{env}}{{(env == '' or env == None) | ternary('','/') }}{{project_name}}"
+env_app: "{{env}}{{(env == '' or env == None) | ternary('','_') }}{{project_name}}"
+
+selinux_python_rpm_name: "libselinux-python-2.0.94-5.8.el6.x86_64.rpm"
+selinux_python_rpm_url: "{{repo_socle_url}}/libselinux-python/2.0.94-5/{{selinux_python_rpm_name}}"
+
+python_httplib2_rpm_name_el6: "python-httplib2-0.7.7-1.el6.noarch.rpm"
+python_httplib2_rpm_url_el6: "{{repo_socle_url}}/python-httplib2/0.7.7-1/{{python_httplib2_rpm_name_el6}}"
+
+python_httplib2_rpm_name_el7: "python-httplib2-0.7.7-3.el7.noarch.rpm"
+python_httplib2_rpm_url_el7: "{{repo_socle_url}}/python-httplib2/0.7.7-3/{{python_httplib2_rpm_name_el7}}"
+
+python_httplib2_rpm_name: "{{(ansible_distribution_major_version == '7') | ternary(python_httplib2_rpm_name_el7, python_httplib2_rpm_name_el6) }}"
+python_httplib2_rpm_url: "{{(ansible_distribution_major_version == '7') | ternary(python_httplib2_rpm_url_el7, python_httplib2_rpm_url_el6) }}"
+
+
+
+# Installation d'unzip sur rhel6 & rhel7
+unzip_rpm_name_el6: "unzip-6.0-2.el6_6.x86_64.rpm"
+unzip_rpm_url_el6: "{{repo_socle_url}}/unzip/6.0-2/{{unzip_rpm_name_el6}}"
+
+unzip_rpm_name_el7: "unzip-6.0-15.el7.x86_64.rpm"
+unzip_rpm_url_el7: "{{repo_socle_url}}/unzip/6.0-15/{{unzip_rpm_name_el7}}"
+
+unzip_rpm_name: "{{(ansible_distribution_major_version == '7') | ternary(unzip_rpm_name_el7, unzip_rpm_name_el6) }}"
+unzip_rpm_url: "{{(ansible_distribution_major_version == '7') | ternary(unzip_rpm_url_el7, unzip_rpm_url_el6) }}"

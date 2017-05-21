@@ -1,0 +1,36 @@
+---
+# nexus_credentials
+nexus_user: nexus_user
+nexus_pwd: nexus_pwd
+
+#target directory
+dist_directory: /apps/dists
+
+# base directory for installation of middleware such as Java or Tomcat, ex: /apps/java/jdk-x.y.z
+install_directory: /apps
+
+# Values for nexus repository
+nexus_url: http://url_nexus
+
+#socle repository url
+repo_socle_url: "{{nexus_url}}/gm-socle-technique/com/galerieslafayette/socle"
+
+# playbook execution mode, enable bypass of ansible-galaxy task
+dev_mode: false
+
+# environment name (dev, int, inf5, rec, inf6, pprod, prod)
+# default is empty for production way
+gl_env: null
+
+# app base directory
+app_base_dir: "/apps/{{env_app_name}}"
+
+project_name_short: "{{project_name}}"
+
+mgmt_system_user: exploit
+
+app_system_user: "{{project_name_short}}adm"
+app_system_group: "{{project_name_short}}grp"
+
+# repository name: depending on artifact name or set by user(app_repository)
+artefact_app_repository: "{{app_repository | default((app_version.endswith('SNAPSHOT')) | ternary('snapshots-local', 'releases-local')) }}"
