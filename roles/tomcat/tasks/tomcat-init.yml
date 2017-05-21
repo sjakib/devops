@@ -1,0 +1,29 @@
+- name: prepare tomcat instances variable for host
+  set_fact:
+  args:
+    tomcat_instance:
+      tomcat_home: "{{catalina_home}}"
+      srv_num: "{{item.srv_num}}"
+      srv_name: "server{{item.srv_num}}"
+      srv_host: "{{item.srv_host|default('localhost')}}"
+      srv_instance_name: "{{project_cluster_name}}-server{{item.srv_num}}"
+      tomcat_base: "{{app_base_dir}}/cluster_{{project_cluster_name}}/server{{item.srv_num}}"
+      webapps_dir: "{{app_base_dir}}/cluster_{{project_cluster_name}}/server{{item.srv_num}}/webapps"
+      cores_dir: "{{app_base_dir}}/cores/cluster_{{project_cluster_name}}-server{{item.srv_num}}"
+      logs_dir: "{{ app_base_dir }}/logs/cluster_{{project_cluster_name}}-server{{item.srv_num}}"
+      app_port_offset: "{{tomcat_app_port_offset}}"
+      port_offset: "{{item.port_offset}}"
+      close_port: "{{tomcat_app_port_offset}}{{item.port_offset}}005"
+      http_port: "{{tomcat_app_port_offset}}{{item.port_offset}}080"
+      https_port: "{{tomcat_app_port_offset}}{{item.port_offset}}443"
+      ajp_port: "{{tomcat_app_port_offset}}{{item.port_offset}}991"
+      jmx_port: "{{tomcat_app_port_offset}}{{item.port_offset}}990"
+      agent_node_name: "{{agent_base_node_name}}-{{project_cluster_name}}-{{item.agent_node_number|default(item.srv_num)}}"
+  with_items: '{{tomcat.instances}}'
+  register: ti_result
+  when: tomcat.instances is defined
+  tags: ['tomcat', 'httpd']
+- name: prepare tomcat instances variable for host (end)
+  set_fact:
+    tomcat_instances: "{{ ti_result.results | map(attribute='ansible_facts.tomcat_instance') | list }}"
+  tags: ['tomcat', 'httpd']
