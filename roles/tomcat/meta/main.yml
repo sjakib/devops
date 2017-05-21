@@ -1,0 +1,6 @@
+---
+galaxy_info:
+  name: gl.tomcat
+  version: ${project.version}
+dependencies:
+  - {role: gl.jdk}

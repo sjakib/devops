@@ -1,0 +1,9 @@
+---
+- include : tomcat-init-env.yml 
+  tags: ['tomcat', 'middleware']
+
+- include : tomcat-install-engine.yml 
+  tags: ['tomcat', 'middleware']
+
+- include : tomcat-install-instances.yml 
+  tags: ['tomcat', 'middleware']

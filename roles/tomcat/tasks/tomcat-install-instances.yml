@@ -1,0 +1,173 @@
+---
+
+- name: Set application tomcat home symlink
+  file: src={{tomcat_location}} dest={{catalina_home}} state=link owner={{tomcat_system_username}} group={{tomcat_system_usergroup}}
+  become: True
+
+- name: "Create project cluster config directory"
+  file: path={{app_base_dir}}/cluster_{{project_cluster_name}}/config owner={{tomcat_system_username}} group={{tomcat_system_usergroup}} state=directory mode=0750
+  become: True
+
+- name: create tomcat instance directories
+  file: path={{item[0].tomcat_base}}/{{item[1]}}  owner={{tomcat_system_username}} group={{tomcat_system_usergroup}} state=directory mode=750
+  with_nested:
+    - "{{tomcat_instances}}"
+    - ['bin', 'conf', 'webapps', 'temp', 'work']
+  become: True
+
+- name: create tomcat instance log directory
+  file: path={{item.logs_dir}} owner={{tomcat_system_username}} group={{tomcat_system_usergroup}} state=directory mode=0750
+  with_items: '{{tomcat_instances}}'
+  become: True
+- name: create tomcat instance log symlink
+  file: src={{item.logs_dir}} dest={{item.tomcat_base}}/logs  owner={{tomcat_system_username}} group={{tomcat_system_usergroup}} state=link
+  with_items: '{{tomcat_instances}}'
+  become: True
+
+- name: create tomcat instance cores directory
+  file: path={{item.cores_dir}} owner={{tomcat_system_username}} group={{tomcat_system_usergroup}} state=directory mode=0750
+  with_items: '{{tomcat_instances}}'
+  become: True
+
+- name: Add Tomcat generic config files
+  copy: src={{item[1]}} dest={{item[0].tomcat_base}}/conf/ owner={{tomcat_system_username}} group={{tomcat_system_usergroup}}
+  with_nested:
+    - "{{tomcat_instances}}"
+    - ["conf/{{tomcat_major_version}}/logging.properties","conf/{{tomcat_major_version}}/web.xml"]
+  become: True
+
+- name: Add Tomcat context.xml
+  template: src=conf/{{tomcat_major_version}}/context.xml dest={{item.tomcat_base}}/conf/ owner={{tomcat_system_username}} group={{tomcat_system_usergroup}}
+  with_items: '{{tomcat_instances}}'
+  become: True
+
+- name: Add Tomcat server.xml
+  template: src=conf/{{tomcat_major_version}}/server.xml dest={{item.tomcat_base}}/conf/ owner={{tomcat_system_username}} group={{tomcat_system_usergroup}}
+  with_items: '{{tomcat_instances}}'
+  become: True
+
+- name: Add Tomcat catalina.properties
+  template: src=conf/{{tomcat_major_version}}/catalina.properties dest={{item.tomcat_base}}/conf/ owner={{tomcat_system_username}} group={{tomcat_system_usergroup}}
+  with_items: '{{tomcat_instances}}'
+  become: True
+
+- name: Add Tomcat tomcat-users.xml
+  template: src=conf/tomcat-users.xml dest={{item.tomcat_base}}/conf/ owner={{tomcat_system_username}} group={{tomcat_system_usergroup}}
+  with_items: '{{tomcat_instances}}'
+  become: True
+
+- name: Copy Tomcat app scripts
+  template: src=gl_tomcat_app_{{item}} dest=/usr/local/bin/gl_tomcat_{{env_app_name | replace("/", "_")}}_{{project_cluster_name}}_{{item}} mode=0744
+  with_items: 
+    - start
+    - start_all
+    - status
+    - status_all
+    - stop
+    - stop_all
+    - profiling
+  become: True
+
+- name: Add Tomcat instance startup.sh
+  template: src=bin/startup.sh dest={{item.tomcat_base}}/bin/ owner={{tomcat_system_username}} group={{tomcat_system_usergroup}}  mode=u+x
+  with_items: '{{tomcat_instances}}'
+  become: True
+
+- name: Add Tomcat instance shutdown.sh
+  template: src=bin/shutdown.sh dest={{item.tomcat_base}}/bin/ owner={{tomcat_system_username}} group={{tomcat_system_usergroup}}  mode=u+x
+  with_items: '{{tomcat_instances}}'
+  become: True
+
+- name: Add Tomcat instance version.sh
+  template: src=bin/version.sh dest={{item.tomcat_base}}/bin/ owner={{tomcat_system_username}} group={{tomcat_system_usergroup}}  mode=u+x
+  with_items: '{{tomcat_instances}}'
+  become: True
+
+- name: Add Tomcat instance setenv.sh (if provided by project)
+  template: src={{tomcat.setenv_file}} dest={{item.tomcat_base}}/bin/setenv.sh owner={{tomcat_system_username}} group={{tomcat_system_usergroup}}  mode=u+x
+  with_items: '{{tomcat_instances}}'
+  when: tomcat.setenv_file is defined
+  become: True
+
+- name: Install JMX security access file
+  template: src=conf/jmxremote.access.tmpl dest={{item.tomcat_base}}/conf/jmxremote.access owner={{tomcat_system_username}} group={{tomcat_system_usergroup}} mode=0600
+  with_items: '{{tomcat_instances}}'
+  when: tomcat_with_jmx_secure
+  become: True
+
+- name: Install JMX security password file
+  template: src=conf/jmxremote.password.tmpl dest={{item.tomcat_base}}/conf/jmxremote.password owner={{tomcat_system_username}} group={{tomcat_system_usergroup}} mode=0600
+  with_items: '{{tomcat_instances}}'
+  when: tomcat_with_jmx_secure
+  become: True
+
+- name: configure logrotate for catalina.out
+  template: >
+    src=logrotate.conf
+    dest=/etc/logrotate.d/tomcat-{{env_app}}-{{project_cluster_name}}-{{item.srv_name}}
+  with_items: '{{tomcat_instances}}'
+  become: True
+  when: tomcat_enable_logrotate is defined
+
+- name: Add Tomcat instance service script
+  template: >
+    src=init.d/init_d.tmpl.sh 
+    dest=/usr/local/bin/tomcat-{{env_app}}-{{project_cluster_name}}-{{item.srv_name}}.service 
+    mode=u+x
+  with_items: '{{tomcat_instances}}'
+  become: True
+
+- name: Create Tomcat instance init.d symlink
+  file: >
+    src=/usr/local/bin/tomcat-{{env_app}}-{{project_cluster_name}}-{{item.srv_name}}.service
+    dest=/etc/init.d/tomcat-{{env_app}}-{{project_cluster_name}}-{{item.srv_name}} 
+    state=link
+    mode=u+x
+  with_items: '{{tomcat_instances}}'
+  become: True
+
+- name: reload systemctl daemon
+  command: systemctl daemon-reload
+  become: True
+  changed_when: False
+  when: ansible_distribution == 'RedHat' and ansible_distribution_major_version > '6'
+
+- name: Install administrator instance start/stop scripts
+  template: >
+    src=admin/tomcat_instance_{{item[1]}}.tmpl.sh 
+    dest=/usr/local/bin/tomcat-{{env_app}}-{{project_cluster_name}}-{{item[0].srv_name}}-{{item[1]}}
+    mode=u+x
+  with_nested:
+    - "{{tomcat_instances}}"
+    - ['start','stop', 'profiling']
+  become: True
+
+- name: Install administrator cluster start/stop scripts
+  template: >
+    src=admin/tomcat_cluster_{{item[1]}}.tmpl.sh 
+    dest=/usr/local/bin/tomcat-{{env_app}}-{{project_cluster_name}}-{{item[1]}}
+    mode=u+x
+  with_nested:
+    - "{{tomcat_instances}}"
+    - ["start","stop"]
+  become: True
+
+- name: Install administrator app start/stop scripts
+  template: >
+    src=admin/tomcat_app_{{item[1]}}.tmpl.sh 
+    dest=/usr/local/bin/tomcat-{{env_app}}-{{item[1]}}
+    mode=u+x
+  with_nested:
+    - "{{tomcat_instances}}"
+    - ["start","stop"]
+  become: True
+
+- name: Install administrator global start/stop scripts
+  template: >
+    src=admin/tomcat_all_{{item}}.tmpl.sh 
+    dest=/usr/local/bin/tomcat-all-{{item}}
+    mode=u+x
+  with_items:
+    - "start"
+    - "stop"
+  become: True

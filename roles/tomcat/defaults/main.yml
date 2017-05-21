@@ -1,0 +1,49 @@
+---
+# artifactory credentials
+nexus_user: nexus_user
+nexus_pwd: nexus_pwd
+
+#default tomcat version
+tomcat_major_version: '8'
+tomcat_minor_version: '0'
+tomcat_micro_version: '23'
+
+# keep logs for only 7 last days
+tomcat_logrotate_days: 7
+
+# user systeme for tomcat binaries and files
+tomcat_global_system_username: 'tomcat'
+tomcat_global_system_usergroup: tomcatg
+
+# user systeme for application tomcat instances and files
+tomcat_system_username: "{{app_system_user}}"
+# group for both users
+tomcat_system_usergroup: "{{app_system_group}}"
+
+# This will configure a default manager-gui user:
+admin_username: tomcat
+admin_password: tomcat
+
+# Enable jmx secure ot not
+tomcat_with_jmx_secure: True
+# Admin password for JMX remote access
+tomcat_jmx_admin_password: "!{{tomcat_system_username|reverse()|upper()}}nimda{{tomcat_system_username|length()}}*"
+
+tomcat_app_java_opts:
+  - project_name={{project_name}}
+
+# if not empty, this is a list of jars separated by comma (,) and starting by comma (,)
+tomcat_jars_toskip: ''
+
+# offset de l'application, chaque application doit avoir son propre offset, ex: 1 pour Wolf, 2 pour Top, ...
+tomcat_app_port_offset: 1
+
+# Tomcat instances: at least one
+tomcat: {
+  instances: [
+    {srv_num: '01', port_offset: 1},
+  ]
+}
+
+# java agents
+agent_base_node_name: "{{project_name}}"
