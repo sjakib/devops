@@ -1,0 +1,91 @@
+---
+
+- debug:
+    msg="deploying app {{ app_context }} {{app_version}}"
+
+- name: create global wars location
+  file: path={{war_dists_dir}} owner={{tomcat_system_username}} group={{tomcat_system_usergroup}} state=directory mode=0750
+  become: True
+
+- name: Download war
+  nexus: >
+    artifactory="{{nexus_url}}"
+    artifactId="{{app_group}}:{{app_name}}:{{app_version}}"
+    repository="{{artefact_app_repository}}"
+    extension="war"
+    destdir="{{war_dists_dir}}"
+    http_user="{{nexus_user}}"
+    http_pass="{{nexus_pwd}}"
+  become: True
+  become_user: "{{tomcat_system_username}}"
+  register: downloadedwar
+  when: development_war_path is not defined
+
+
+- name: set war_to_deploy from artifactory download
+  set_fact: war_to_deploy="{{downloadedwar.dest}}"
+  when: development_war_path is not defined
+
+- name: Check if development_war exists
+  stat: path={{development_war_path}}
+  register: development_war
+  when: development_war_path is defined
+- name: set war_to_deploy from local war file (development mode)
+  set_fact: war_to_deploy="{{development_war.stat.path}}"
+  when: development_war_path is defined
+
+- name: "Stop tomcats"
+  shell: "/usr/local/bin/tomcat-{{env_app}}-{{project_cluster_name}}-server{{ item.srv_num }}-stop"
+  become: True
+  with_items: '{{tomcat.instances}}'
+  ignore_errors: yes
+  tags: ['tomcat', 'deploy-war']
+
+- name: Clean previous war tomcat/webapps
+  file: path={{ app_base_dir }}/cluster_{{project_cluster_name}}/server{{item.srv_num}}/webapps/{{ app_context }}.war state=absent
+  with_items: '{{tomcat.instances}}'
+  become: True
+  when: development_war_path is not defined
+
+- name: Clean previous exloded war directory
+  file: path={{ app_base_dir }}/cluster_{{project_cluster_name}}/server{{item.srv_num}}/webapps/{{ app_context }} state=absent
+  with_items: '{{tomcat.instances}}'
+  become: True
+  when: development_war_path is not defined
+
+- name: "Copy war to tomcat instances"
+  shell: cp {{war_to_deploy}} {{ app_base_dir }}/cluster_{{project_cluster_name}}/server{{item.srv_num}}/webapps/{{ app_context }}.war
+  with_items: '{{tomcat.instances}}'
+  become: True
+  become_user: "{{tomcat_system_username}}"
+  when: app_context_env_vars is not defined
+
+- name: "Create catalina localhost config dir"
+  file: path={{ app_base_dir }}/cluster_{{project_cluster_name}}/server{{item.srv_num}}/conf/Catalina/localhost owner={{tomcat_system_username}} group={{tomcat_system_usergroup}} state=directory
+  with_items: '{{tomcat.instances}}'
+  become: True
+  when: app_context_env_vars is defined
+
+- name: "Create application context for war : {{war_to_deploy}}"
+  template: src=tomcat-app-context-tmpl.yml dest={{ app_base_dir }}/cluster_{{project_cluster_name}}/server{{item.srv_num}}/conf/Catalina/localhost/{{app_context}}.xml owner={{tomcat_system_username}} group={{tomcat_system_usergroup}}
+  with_items: '{{tomcat.instances}}'
+  become: True
+  when: app_context_env_vars is defined
+
+- name: Clean temporary war
+  file: path={{war_to_deploy}} state=absent
+  become: True
+  when: app_context_env_vars is not defined and development_war_path is not defined
+
+- name: CLean historic wars
+  shell: "/bin/ls -1tr {{war_dists_dir}}/{{app_name}}*war | head -n -{{tomcat_clean_old_wars_nb_keep}} | xargs -d '\n' rm -f"
+  become: True
+  when: app_context_env_vars is defined
+
+- name: "Start tomcats"
+  shell: "/usr/local/bin/tomcat-{{env_app}}-{{project_cluster_name}}-server{{ item.srv_num }}-start"
+  become: True
+  with_items: '{{tomcat.instances}}'
+  tags: ['tomcat', 'deploy-war']
+  when: tomcat_restart_after_deploy
+
